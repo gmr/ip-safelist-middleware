@@ -103,4 +103,5 @@ ignore = [
 
 [tool.yapf]
 based_on_style = "pep8"
-column_limit = 79
+allow_split_before_dict_value = false
+indent_dictionary_value = true
