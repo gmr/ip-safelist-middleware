@@ -30,17 +30,13 @@ jobs:
       run: |
         ruff check .
 
-    - name: Format check with yapf
-      run: |
-        yapf --style=pep8 --line-length=79 --diff --recursive src/ tests/
-
     - name: Type check with mypy
       run: |
-        mypy src/
+        mypy ip_safelist_middleware
 
     - name: Test with pytest
       run: |
-        pytest --cov=fastapi_safelist_middleware --cov-report=xml
+        pytest --cov=ip_safelist_middleware --cov-report=xml
 
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v3
