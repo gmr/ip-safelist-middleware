@@ -1,0 +1,106 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "ip-safelist-middleware"
+dynamic = ["version"]
+description = "FastAPI Middleware for IP Address Safelisting"
+readme = "README.md"
+requires-python = ">=3.12"
+license = {file = "LICENSE"}
+authors = [
+    {name = "Gavin M. Roy", email = "gavinmroy@gmail.com"},
+]
+keywords = ["fastapi", "middleware", "ip", "safelist", "security"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "License :: OSI Approved :: BSD License",
+    "Framework :: FastAPI",
+    "Intended Audience :: Developers",
+    "Topic :: Internet :: WWW/HTTP :: WSGI :: Middleware",
+    "Topic :: Security",
+]
+dependencies = [
+    "fastapi>=0.68.0",
+    "httpx>=0.24.0",
+    "starlette>=0.14.2",
+    "pydantic>=1.9.0",
+    "pydantic_settings"
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "pytest-asyncio>=0.20.0",
+    "mypy>=1.0.0",
+    "pyright>=1.1.396",
+    "ruff>=0.0.260",
+    "yapf>=0.40.0"
+]
+
+[project.urls]
+Homepage = "https://github.com/gmr/ip-safelist-middleware"
+Issues = "https://github.com/gmr/ip-safelist-middleware/issues"
+
+[tool.hatch.version]
+path = "ip_safelist_middleware/__version__.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["ip_safelist_middleware"]
+
+
+[tool.coverage.run]
+branch = true
+source = ["ip_safelist_middleware"]
+command_line = "-m unittest discover tests --buffer --verbose"
+
+[tool.coverage.report]
+fail_under = 90
+show_missing = true
+
+[tool.mypy]
+python_version = "3.12"
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+strict_optional = true
+warn_redundant_casts = true
+warn_return_any = true
+warn_unused_ignores = true
+
+[tool.ruff]
+target-version = "py312"
+line-length = 79
+select =  [
+    "ASYNC",  # flake8-async
+    "B",      # flake8-bugbear
+    "BLE",    # flake8-blind-except
+    "C4",     # flake8-comprehensions
+    "DTZ",    # flake8-datetimez
+    "E", "W", # pycodestyle
+    "F",      # pyflakes
+    "G",      # flake8-logging-format
+    "I",      # isort
+    "S",      # flake8-bandit
+    "T20",    # flake8-print
+    "UP",     # pyupgrade
+    "F401",   # unused imports
+    "F841",   # unused variables
+    "B027",   # empty method in abstract base class
+    "B905",   # zip() without explicit strict parameter
+]
+include = ["pyproject.toml", "ip_safelist_middleware/*.py", "tests/**/*.py"]
+exclude = ["examples/*.py"]
+ignore = [
+  "RSE",      # contradicts Python Style Guide
+]
+
+[tool.yapf]
+based_on_style = "pep8"
+column_limit = 79
