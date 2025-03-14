@@ -198,7 +198,8 @@ class TestCase(unittest.TestCase):
                             type=ip_safelist_middleware.ListType.env)
                     ],
                     aws_enabled=False,
-                    networks='192.168.0.0/24')])
+                    networks='192.168.0.0/24')
+            ])
 
         test_client = self._new_client(app, client=('192.168.0.200', 50000))
         response = test_client.get('/health')
