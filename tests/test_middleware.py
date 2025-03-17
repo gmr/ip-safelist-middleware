@@ -102,7 +102,7 @@ class TestCase(unittest.TestCase):
             ip_safelist = ip_safelist_middleware.IPSafeListMiddleware(
                 app=mock.MagicMock(spec=fastapi.FastAPI),
                 aws_enabled=False,
-                networks=['10.0.0.0/8', '192.168.0.0/24'])
+                networks={'10.0.0.0/8', '192.168.0.0/24'})
 
         self.assertEqual(len(ip_safelist._items), 1)
         self.assertEqual(ip_safelist._items[0].path, r'^/.*$')
@@ -129,7 +129,7 @@ class TestCase(unittest.TestCase):
                 ],
                 aws_enabled=True,
                 aws_regions=['us-east-1'],
-                networks=['10.0.0.0/8', '192.168.0.0/24'])
+                networks={'10.0.0.0/8', '192.168.0.0/24'})
 
         self.assertEqual(len(ip_safelist._items), 2)
         self.assertEqual(len(ip_safelist._items[0].type), 2)
@@ -161,7 +161,7 @@ class TestCase(unittest.TestCase):
                         type=ip_safelist_middleware.ListType.env)
                 ],
                 aws_enabled=False,
-                networks=['10.0.0.0/8', '192.168.0.0/24'])
+                networks={'10.0.0.0/8', '192.168.0.0/24'})
 
         self.assertEqual(len(ip_safelist._items), 1)
         self.assertEqual(ip_safelist._items[0].type,
@@ -177,7 +177,7 @@ class TestCase(unittest.TestCase):
                     type=ip_safelist_middleware.ListType.env)
             ],
             aws_enabled=False,
-            networks=['576', '192.168.0.0/24'])
+            networks={'576', '192.168.0.0/24'})
         self.assertEqual(len(ip_safelist._items), 1)
         self.assertEqual(ip_safelist._items[0].type,
                          ip_safelist_middleware.ListType.env)

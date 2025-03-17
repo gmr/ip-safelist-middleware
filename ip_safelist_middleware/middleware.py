@@ -3,6 +3,7 @@ import logging
 import time
 
 import httpx
+import pydantic
 import pydantic_settings
 from starlette import responses, types
 
@@ -20,12 +21,23 @@ IPNetworks = ipaddress.IPv4Network | ipaddress.IPv6Network
 class _Settings(pydantic_settings.BaseSettings):
     aws_enabled: bool = False
     aws_regions: list[str] = ['us-east-1', 'us-east-2']
-    networks: list[str] | str | None = None
+    networks: set[IPNetworks] | None = None
     status_code: int = 403
     status_message: str = 'Forbidden'
 
     model_config = pydantic_settings.SettingsConfigDict(
         env_prefix='IP_SAFELIST_', case_sensitive=False)
+
+    @pydantic.field_validator('networks', mode='before')
+    @classmethod
+    def parse_comma_separated_string(cls, value: str | None) \
+            -> set[IPNetworks] | None:
+        if isinstance(value, str):
+            return {
+                ipaddress.ip_network(item.strip())
+                for item in value.split(',')
+            }
+        return value
 
 
 class IPSafeListMiddleware:
@@ -34,14 +46,22 @@ class IPSafeListMiddleware:
                  list_items: list[models.ListItem] | None = None,
                  aws_enabled: bool | None = None,
                  aws_regions: list[str] | None = None,
-                 networks: list[str] | str | None = None,
+                 networks: set[str] | str | None = None,
                  status_code: int | None = None,
                  status_message: str | None = None) -> None:
         self._settings = _Settings()
+        if isinstance(networks, str):
+            networks = {networks}
         for key, value in {
                 'aws_enabled': aws_enabled,
                 'aws_regions': aws_regions,
-                'networks': networks,
+                'networks': {
+                    value
+                    for value in {
+                        self._convert_to_network(network)
+                        for network in networks
+                    } if value
+                } if networks else networks,
                 'status_code': status_code,
                 'status_message': status_message
         }.items():
@@ -83,6 +103,14 @@ class IPSafeListMiddleware:
             self._settings.status_message,
             status_code=self._settings.status_code)
         await response(scope, receive, send)
+
+    @staticmethod
+    def _convert_to_network(value: str) -> IPNetworks | None:
+        try:
+            return ipaddress.ip_network(value)
+        except ValueError as err:
+            LOGGER.error('Error parsing IP network (%s): %s', value, err)
+            return None
 
     def _is_in_safe_list(self, item: models.ListItem, client_ip: IPAddress) \
             -> bool:
@@ -140,15 +168,5 @@ class IPSafeListMiddleware:
 
     def _load_from_environment(self) -> set[IPNetworks]:
         """Load comma delimited safe list from environment variable."""
-        if not self._settings.networks:
-            return set()
-        safe_list = set()
-        if isinstance(self._settings.networks, str):
-            safe_list.add(ipaddress.ip_network(self._settings.networks))
-        elif isinstance(self._settings.networks, list):
-            for addr in self._settings.networks:
-                try:
-                    safe_list.add(ipaddress.ip_network(addr))
-                except ValueError:
-                    LOGGER.warning('Invalid IP in safe list: %s', addr)
-        return safe_list
+        LOGGER.debug('ENV Safelist: %r', self._settings.networks)
+        return self._settings.networks or set()
