@@ -116,10 +116,14 @@ class IPSafeListMiddleware:
             -> bool:
         """Return True if the client IP is in the safe list."""
         safe_list = set()
-        if isinstance(item.type, models.ListType):
+        if item.type == models.ListType.allow:
+            return True
+        elif isinstance(item.type, models.ListType):
             safe_list = self._get_safe_list(item.type)
         elif isinstance(item.type, list):
             for item_type in item.type:
+                if item_type == models.ListType.allow:
+                    return True
                 safe_list.update(self._get_safe_list(item_type))
         for network in safe_list:
             if client_ip in network:

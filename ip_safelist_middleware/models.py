@@ -7,6 +7,7 @@ import pydantic
 class ListType(enum.Enum):
     aws = 'aws'
     env = 'env'
+    allow = 'allow'
 
 
 class ListItem(pydantic.BaseModel):
