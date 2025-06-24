@@ -3,11 +3,7 @@
 import uvicorn
 from fastapi import FastAPI, Request
 
-from ip_safelist_middleware import (
-    ListItem,
-    ListType,
-    IPSafeListMiddleware,
-)
+from ip_safelist_middleware import IPSafeListMiddleware, ListItem, ListType
 
 # Create FastAPI app
 app = FastAPI(
@@ -24,9 +20,7 @@ app = FastAPI(
 # Add IPSafeListMiddleware
 app.add_middleware(
     IPSafeListMiddleware,
-    list_items=[
-        ListItem(path=r"^/(?!health).*$", type=ListType.env),
-    ],
+    list_items=[ListItem(path=r'^/(?!health).*$', type=ListType.env)],
     # Optional: Override default status code and message
     # status_code=401,
     # status_message="Unauthorized: Your IP is not allowed"
@@ -34,30 +28,27 @@ app.add_middleware(
 
 
 @app.get('/')
-async def root(request: Request):
+async def root(request: Request) -> dict[str, str]:
     """Root endpoint that returns client IP and a greeting."""
     client_ip = request.client.host if request.client else 'Unknown'
     return {
         'message': 'Welcome to the IP Safelist Middleware example!',
-        'client_ip': client_ip
+        'client_ip': client_ip,
     }
 
 
 @app.get('/health')
-async def health():
+async def health() -> dict[str, str]:
     """Health check endpoint that bypasses the safelist check."""
     return {'status': 'ok'}
 
 
 @app.get('/admin')
-async def admin(request: Request):
+async def admin(request: Request) -> dict[str, str]:
     """Admin endpoint that requires safelist verification."""
     client_ip = request.client.host if request.client else 'Unknown'
-    return {
-        'message': 'You have access to the admin area',
-        'client_ip': client_ip
-    }
+    return {'message': 'You have access to the admin area', 'client_ip': client_ip}
 
 
 if __name__ == '__main__':
-    uvicorn.run('basic_app:app', host='0.0.0.0', port=8000, reload=True)
+    uvicorn.run('basic_app:app', host='0.0.0.0', port=8000, reload=True)  # noqa: S104

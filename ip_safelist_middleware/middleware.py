@@ -26,44 +26,43 @@ class _Settings(pydantic_settings.BaseSettings):
     status_message: str = 'Forbidden'
 
     model_config = pydantic_settings.SettingsConfigDict(
-        env_prefix='IP_SAFELIST_', case_sensitive=False)
+        env_prefix='IP_SAFELIST_', case_sensitive=False
+    )
 
     @pydantic.field_validator('networks', mode='before')
     @classmethod
-    def parse_comma_separated_string(cls, value: str | None) \
-            -> set[IPNetworks] | None:
+    def parse_comma_separated_string(cls, value: str | None) -> set[IPNetworks] | None:
         if isinstance(value, str):
-            return {
-                ipaddress.ip_network(item.strip())
-                for item in value.split(',')
-            }
+            return {ipaddress.ip_network(item.strip()) for item in value.split(',')}
         return value
 
 
 class IPSafeListMiddleware:
-    def __init__(self,
-                 app: types.ASGIApp,
-                 list_items: list[models.ListItem] | None = None,
-                 aws_enabled: bool | None = None,
-                 aws_regions: list[str] | None = None,
-                 networks: set[str] | str | None = None,
-                 status_code: int | None = None,
-                 status_message: str | None = None) -> None:
+    def __init__(
+        self,
+        app: types.ASGIApp,
+        list_items: list[models.ListItem] | None = None,
+        aws_enabled: bool | None = None,
+        aws_regions: list[str] | None = None,
+        networks: set[str] | str | None = None,
+        status_code: int | None = None,
+        status_message: str | None = None,
+    ) -> None:
         self._settings = _Settings()
         if isinstance(networks, str):
             networks = {networks}
         for key, value in {
-                'aws_enabled': aws_enabled,
-                'aws_regions': aws_regions,
-                'networks': {
-                    value
-                    for value in {
-                        self._convert_to_network(network)
-                        for network in networks
-                    } if value
-                } if networks else networks,
-                'status_code': status_code,
-                'status_message': status_message
+            'aws_enabled': aws_enabled,
+            'aws_regions': aws_regions,
+            'networks': {
+                value
+                for value in {self._convert_to_network(network) for network in networks}
+                if value
+            }
+            if networks
+            else networks,
+            'status_code': status_code,
+            'status_message': status_message,
         }.items():
             if value is not None:
                 self._settings.__setattr__(key, value)
@@ -71,12 +70,7 @@ class IPSafeListMiddleware:
         self.app = app
 
         if not list_items:  # Default behavior if no list items passed
-            list_items = [
-                models.ListItem(
-                    path=r"^/.*$",
-                    type=models.ListType.env,
-                )
-            ]
+            list_items = [models.ListItem(path=r'^/.*$', type=models.ListType.env)]
 
         self._items = list_items
         if self._settings.aws_enabled:
@@ -85,23 +79,24 @@ class IPSafeListMiddleware:
             self._aws_list = set()
         self._env_list = self._load_from_environment()
 
-    async def __call__(self, scope: types.Scope, receive: types.Receive,
-                       send: types.Send) -> None:
+    async def __call__(
+        self, scope: types.Scope, receive: types.Receive, send: types.Send
+    ) -> None:
         """Validate the Client IP is in the Safelist"""
         if scope['type'] != 'http':  # pragma: nocover
             return await self.app(scope, receive, send)
         client_ip = self._get_request_address(scope['client'][0])
         if client_ip:
             for item in self._items:
-                if item.regex.search(scope['path']) \
-                        and self._is_in_safe_list(item, client_ip):
+                if item.regex.search(scope['path']) and self._is_in_safe_list(
+                    item, client_ip
+                ):
                     return await self.app(scope, receive, send)
 
-        LOGGER.debug('Returning %s to %s', self._settings.status_code,
-                     client_ip)
+        LOGGER.debug('Returning %s to %s', self._settings.status_code, client_ip)
         response = responses.PlainTextResponse(
-            self._settings.status_message,
-            status_code=self._settings.status_code)
+            self._settings.status_message, status_code=self._settings.status_code
+        )
         await response(scope, receive, send)
 
     @staticmethod
@@ -112,8 +107,7 @@ class IPSafeListMiddleware:
             LOGGER.error('Error parsing IP network (%s): %s', value, err)
             return None
 
-    def _is_in_safe_list(self, item: models.ListItem, client_ip: IPAddress) \
-            -> bool:
+    def _is_in_safe_list(self, item: models.ListItem, client_ip: IPAddress) -> bool:
         """Return True if the client IP is in the safe list."""
         safe_list = set()
         if item.type == models.ListType.allow:
@@ -146,17 +140,18 @@ class IPSafeListMiddleware:
             LOGGER.error('Error parsing IP address (%s): %s', addr, err)
             return None
 
-    def _load_from_amazon(self, transport: httpx.BaseTransport | None = None) \
-            -> set[IPNetworks]:
+    def _load_from_amazon(
+        self, transport: httpx.BaseTransport | None = None
+    ) -> set[IPNetworks]:
         """Load safe list from Amazon IP Ranges."""
-        LOGGER.debug('Loading Safelist IP Ranges from Amazon (%s)',
-                     self._settings.aws_regions)
+        LOGGER.debug(
+            'Loading Safelist IP Ranges from Amazon (%s)', self._settings.aws_regions
+        )
         start = time.time()
         networks: set[IPNetworks] = set()
 
         # Use context manager to ensure client is properly closed
-        with httpx.Client(headers=_HTTP_HEADERS,
-                          transport=transport) as client:
+        with httpx.Client(headers=_HTTP_HEADERS, transport=transport) as client:
             response = client.get(_AWS_IP_URL)
             response.raise_for_status()
             for prefix in response.json()['prefixes']:
@@ -166,8 +161,9 @@ class IPSafeListMiddleware:
                 if prefix['region'] in self._settings.aws_regions:
                     networks.add(ipaddress.IPv6Network(prefix['ipv6_prefix']))
 
-        LOGGER.debug('Loaded %i networks in %0.2f seconds', len(networks),
-                     time.time() - start)
+        LOGGER.debug(
+            'Loaded %i networks in %0.2f seconds', len(networks), time.time() - start
+        )
         return networks
 
     def _load_from_environment(self) -> set[IPNetworks]:

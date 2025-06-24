@@ -12,6 +12,7 @@ class ListType(enum.Enum):
 
 class ListItem(pydantic.BaseModel):
     """Configuration entry for a path and the type of list to use"""
+
     path: str
     type: ListType | list[ListType]
     _compiled: re.Pattern | None = pydantic.PrivateAttr(default=None)
