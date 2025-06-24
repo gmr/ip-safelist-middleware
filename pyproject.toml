@@ -50,7 +50,9 @@ docs = [
 
 [project.urls]
 Homepage = "https://github.com/gmr/ip-safelist-middleware"
+Documentation = "https://gmr.github.io/ip-safelist-middleware"
 Issues = "https://github.com/gmr/ip-safelist-middleware/issues"
+Changelog = "https://gmr.github.io/ip-safelist-middleware/changelog/"
 
 [tool.coverage.run]
 branch = true

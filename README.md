@@ -2,11 +2,14 @@
 
 FastAPI Middleware for IP Address Safelisting. This middleware allows you to restrict access to your FastAPI application based on client IP addresses.
 
+📖 **[Documentation](https://gmr.github.io/ip-safelist-middleware)** | 🚀 **[Quick Start](https://gmr.github.io/ip-safelist-middleware/getting-started/)** | 📋 **[Examples](https://gmr.github.io/ip-safelist-middleware/examples/)**
+
 ## Features
 
 - IP address filtering based on exact match or network ranges (CIDR notation)
 - Support for AWS IP ranges from specified regions
 - Path-based access control using regex patterns
+- Unrestricted access for public endpoints using `allow` type
 - Environment variable configuration with pydantic-settings
 - Customizable HTTP status code and message for blocked requests
 
@@ -77,10 +80,39 @@ app.add_middleware(
     list_items=[
         ListItem(path=r'^/admin/.*$', type=ListType.aws),  # AWS IPs for admin
         ListItem(path=r'^/api/internal/.*$', type=ListType.env),  # Environment IPs for internal API
-        ListItem(path=r'^/(?!health).*$', type=ListType.env),  # Environment IPs for everything except health
+        ListItem(path=r'^/public/.*$', type=ListType.allow),  # Unrestricted access for public endpoints
+        ListItem(path=r'^/(?!health|public).*$', type=ListType.env),  # Environment IPs for everything except health/public
     ]
 )
 ```
+
+### Unrestricted Access for Public Endpoints
+
+Use `ListType.allow` to create public endpoints that bypass IP restrictions entirely:
+
+```python
+from fastapi import FastAPI
+from ip_safelist_middleware import IPSafeListMiddleware, ListItem, ListType
+
+app = FastAPI()
+
+app.add_middleware(
+    IPSafeListMiddleware,
+    list_items=[
+        ListItem(path=r'^/api/.*$', type=ListType.env),  # Protected API endpoints
+        ListItem(path=r'^/public/.*$', type=ListType.allow),  # Public endpoints - no IP restrictions
+        ListItem(path=r'^/docs.*$', type=ListType.allow),  # Public documentation
+    ]
+)
+```
+
+The `allow` type is useful for:
+- Public API endpoints
+- Documentation pages
+- Health checks accessible from anywhere
+- Static assets or public content
+
+**Note**: When `allow` is combined with other types in a list (e.g., `[ListType.allow, ListType.env]`), the `allow` type takes precedence and grants unrestricted access.
 
 ### Excluding Paths
 
@@ -137,6 +169,17 @@ The middleware can be configured using environment variables:
 | IP_SAFELIST_AWS_REGIONS | Comma-separated list of AWS regions | us-east-1,us-east-2 |
 | IP_SAFELIST_STATUS_CODE | HTTP status code for blocked requests | 403 |
 | IP_SAFELIST_STATUS_MESSAGE | Message returned for blocked requests | Forbidden |
+
+For detailed configuration options and deployment examples, see the [Configuration Guide](https://gmr.github.io/ip-safelist-middleware/configuration/).
+
+## Documentation
+
+Complete documentation is available at **[gmr.github.io/ip-safelist-middleware](https://gmr.github.io/ip-safelist-middleware)** including:
+
+- 🚀 [Getting Started Guide](https://gmr.github.io/ip-safelist-middleware/getting-started/)
+- ⚙️ [Configuration Reference](https://gmr.github.io/ip-safelist-middleware/configuration/)
+- 📋 [Real-world Examples](https://gmr.github.io/ip-safelist-middleware/examples/)
+- 📚 [API Reference](https://gmr.github.io/ip-safelist-middleware/api-reference/)
 
 ## License
 
